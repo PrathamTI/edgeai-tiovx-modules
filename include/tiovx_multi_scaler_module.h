@@ -105,6 +105,9 @@ typedef struct {
     /*! Crop params data objects */
     vx_user_data_object crop_obj[TIOVX_MULTI_SCALER_MODULE_MAX_OUTPUTS];
 
+    /*! Input params data objects */
+    vx_user_data_object input_prm_obj;
+
     /*! Crop params */
     tivx_vpac_msc_crop_params_t crop_params[TIOVX_MULTI_SCALER_MODULE_MAX_OUTPUTS];
 
@@ -255,6 +258,16 @@ void tiovx_multi_scaler_module_crop_params_init(TIOVXMultiScalerModuleObj *obj);
  *
  */
 vx_status tiovx_multi_scaler_module_update_crop_params(TIOVXMultiScalerModuleObj *obj);
+
+/** \brief TIOVX Multi-scaler module update input params
+ *
+ * This function will set the input params. Enabled simultaneous processing
+ * if num_outputs <=2
+ *
+ * \param [out] obj Handle to TIOVX Multi-scaler module object
+ *
+ */
+vx_status tiovx_multi_scaler_module_update_input_params(TIOVXMultiScalerModuleObj *obj);
 
 /* @} */
 

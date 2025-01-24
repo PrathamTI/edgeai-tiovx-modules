@@ -126,6 +126,26 @@ static vx_status tiovx_multi_scaler_module_configure_crop_params(vx_context cont
     return status;
 }
 
+static vx_status tiovx_multi_scaler_module_configure_input_params(vx_context context, TIOVXMultiScalerModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+    tivx_vpac_msc_input_params_t input_prm;
+
+    tivx_vpac_msc_input_params_init(&input_prm);
+
+#if !defined(J721E) //This feature is supported only on VPAC3 and VPAC3L
+    if (obj->num_outputs <= 2) {
+        input_prm.is_enable_simul_processing = 1;
+    }
+#endif
+    obj->input_prm_obj = vxCreateUserDataObject(context,
+                                           "tivx_vpac_msc_input_params_t",
+                                           sizeof(tivx_vpac_msc_input_params_t),
+                                           &input_prm);
+
+    return status;
+}
+
 static vx_status tiovx_multi_scaler_module_create_scaler_input(vx_context context, TIOVXMultiScalerModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
@@ -337,6 +357,12 @@ vx_status tiovx_multi_scaler_module_init(vx_context context, TIOVXMultiScalerMod
     {
         TIOVX_MODULE_PRINTF("[MULTI-SCALER-MODULE] Configuring crop params!\n");
         status = tiovx_multi_scaler_module_configure_crop_params(context, obj);
+    }
+
+    if((vx_status)VX_SUCCESS == status)
+    {
+        TIOVX_MODULE_PRINTF("[MULTI-SCALER-MODULE] Configuring input params!\n");
+        status = tiovx_multi_scaler_module_configure_input_params(context, obj);
     }
 
     return status;
@@ -942,6 +968,28 @@ vx_status tiovx_multi_scaler_module_update_crop_params(TIOVXMultiScalerModuleObj
     {
         TIOVX_MODULE_ERROR("[MULTI-SCALER-MODULE] Node send command TIVX_VPAC_MSC_CMD_SET_CROP_PARAMS, failed!\n");
     }
+
+    return status;
+}
+
+vx_status tiovx_multi_scaler_module_update_input_params(TIOVXMultiScalerModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+    vx_reference refs[1];
+
+    refs[0] = (vx_reference)(obj->input_prm_obj);
+    status = tivxNodeSendCommand(obj->node, 0u,
+                                 TIVX_VPAC_MSC_CMD_SET_INPUT_PARAMS,
+                                 refs, 1u);
+
+    if((vx_status)VX_SUCCESS != status)
+    {
+        TIOVX_MODULE_ERROR(
+                "[MULTI-SCALER-MODULE] Node send command "
+                "TIVX_VPAC_MSC_CMD_SET_INPUT_PARAMS, failed!\n");
+    }
+
+    vxReleaseUserDataObject(&(obj->input_prm_obj));
 
     return status;
 }
