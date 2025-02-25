@@ -488,6 +488,11 @@ vx_status tiovx_ldc_module_init(vx_context context, TIOVXLDCModuleObj *obj, Sens
             status = tiovx_ldc_module_configure_region_params(context, obj);
         }
     }
+    else if (obj->ldc_mode == TIOVX_MODULE_LDC_OP_MODE_WARP_MATRIX)
+    {
+        obj->warp_matrix = vxCreateMatrix(context, VX_TYPE_INT16, 2, 3);
+        status = vxCopyMatrix(obj->warp_matrix, obj->warp_params, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
+    }
 
     if((vx_status)VX_SUCCESS == status)
     {
@@ -552,6 +557,12 @@ vx_status tiovx_ldc_module_deinit(TIOVXLDCModuleObj *obj)
     {
         TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing DCC config handle!\n");
         status = vxReleaseUserDataObject(&obj->dcc_config);
+    }
+
+    if(((vx_status)VX_SUCCESS == status) && (obj->warp_matrix != NULL))
+    {
+        TIOVX_MODULE_PRINTF("[LDC-MODULE] Releasing warp matrix!\n");
+        status = vxReleaseMatrix(&obj->warp_matrix);
     }
 
     for(buf = 0; buf < obj->input.bufq_depth; buf++)
@@ -883,4 +894,25 @@ vx_status tiovx_ldc_module_send_write_output_cmd(TIOVXLDCModuleObj *obj, vx_uint
     }
 
     return (status);
+}
+
+vx_status tiovx_ldc_module_update_warp_matrix(TIOVXLDCModuleObj *obj, vx_int16 *warp_params)
+{
+    vx_status status = VX_SUCCESS;
+    vx_reference ref[1] = {(vx_reference)obj->warp_matrix};
+
+    if (obj->warp_matrix)
+    {
+        status = vxCopyMatrix(obj->warp_matrix, warp_params, VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST);
+        if (obj->node)
+        {
+            status = tivxNodeSendCommand(obj->node, 0, TIVX_VPAC_LDC_CMD_SET_LDC_PARAMS, ref, 1);
+        }
+    }
+    else
+    {
+        memcpy(obj->warp_params, warp_params, 12);
+    }
+
+    return status;
 }

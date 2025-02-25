@@ -94,6 +94,7 @@ extern "C" {
 typedef enum {
     TIOVX_MODULE_LDC_OP_MODE_DCC_DATA = 0,
     TIOVX_MODULE_LDC_OP_MODE_MESH_IMAGE,
+    TIOVX_MODULE_LDC_OP_MODE_WARP_MATRIX,
     TIOVX_MODULE_LDC_OP_MODE_MAX,
     TIOVX_MODULE_LDC_OP_MODE_DEFAULT = TIOVX_MODULE_LDC_OP_MODE_DCC_DATA
 
@@ -116,6 +117,9 @@ typedef struct {
 
     /*! Must be 2x3 (affine) or 3x3 (perspective) */
     vx_matrix warp_matrix;
+
+    /*! Warp params */
+    vx_int16 warp_params[6];
 
     /*! LDC mesh params structure to initialize mesh config object */
     tivx_vpac_ldc_mesh_params_t mesh_params;
@@ -275,6 +279,8 @@ vx_status tiovx_ldc_module_add_write_output_node(vx_graph graph, TIOVXLDCModuleO
  *
  */
 vx_status tiovx_ldc_module_send_write_output_cmd(TIOVXLDCModuleObj *obj, vx_uint32 start_frame, vx_uint32 num_frames, vx_uint32 num_skip);
+
+vx_status tiovx_ldc_module_update_warp_matrix(TIOVXLDCModuleObj *obj, vx_int16 *warp_params);
 
 /* @} */
 
