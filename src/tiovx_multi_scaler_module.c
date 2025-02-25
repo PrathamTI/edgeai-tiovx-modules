@@ -133,7 +133,7 @@ static vx_status tiovx_multi_scaler_module_configure_input_params(vx_context con
 
     tivx_vpac_msc_input_params_init(&input_prm);
 
-#if !defined(J721E) //This feature is supported only on VPAC3 and VPAC3L
+#if !defined(SOC_J721E) //This feature is supported only on VPAC3 and VPAC3L
     if (obj->num_outputs <= 2) {
         input_prm.is_enable_simul_processing = 1;
     }
