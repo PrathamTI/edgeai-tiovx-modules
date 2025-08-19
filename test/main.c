@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 
             status = app_modules_ldc_test(argc, argv);
         }
-
+#if defined(SOC_J721E) || defined(SOC_AM62A) || defined(SOC_J722S)
         else if(status == 0 && strcmp(CHOICES[i], "viss") == 0)
         {
             printf("[Running VISS module test]\n");
@@ -163,6 +163,7 @@ int main(int argc, char *argv[])
             status = app_modules_viss_test(argc, argv);
 
         }
+#endif
 
         else if(status == 0 && strcmp(CHOICES[i], "pyramid") == 0)
         {
