@@ -100,7 +100,6 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${PSDK_INCLUDE_PATH}/processor_sdk/imaging/algos/awb/include
                     ${PSDK_INCLUDE_PATH}/processor_sdk/imaging/algos/dcc/include
                     ${PSDK_INCLUDE_PATH}/processor_sdk/imaging/sensor_drv/include
-                    ${PSDK_INCLUDE_PATH}/processor_sdk/imaging/ti_2a_wrapper/include
                     ${PSDK_INCLUDE_PATH}/processor_sdk/imaging/kernels/include
                     ${PSDK_INCLUDE_PATH}/processor_sdk/imaging/utils/itt_server/include/
                     ${PSDK_INCLUDE_PATH}/processor_sdk/tidl_j7/arm-tidl/rt/inc/
@@ -118,6 +117,10 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${PSDK_INCLUDE_PATH}/processor_sdk/app_utils/
                     ${PSDK_INCLUDE_PATH}/processor_sdk/video_io/kernels/include/
                    )
+
+if (NOT("${TARGET_SOC_LOWER}" STREQUAL "j784s4" OR "${TARGET_SOC_LOWER}" STREQUAL "j742s2" OR "${TARGET_SOC_LOWER}" STREQUAL "j721s2"))
+    include_directories(${PSDK_INCLUDE_PATH}/processor_sdk/imaging/ti_2a_wrapper/include)
+endif()
 
 set(SYSTEM_LINK_LIBS
     tivision_apps
