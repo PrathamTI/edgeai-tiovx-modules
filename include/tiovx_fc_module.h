@@ -190,11 +190,17 @@ typedef struct {
     /*! Flag to indicate whether or not the intermediate output is written */
     vx_int32 en_out_write;
     
+    /*! Color format used by scaler node; supported values are \ref VX_DF_IMAGE_U8 and \ref VX_DF_IMAGE_NV12 */
+    vx_int32 color_format;
+
     /*! File path used to write output */
     vx_array file_path;
     
     /* Number or MSC outputs for a given inputl*/
     vx_int32 msc_num_outputs;
+
+    /*! Flag to enable writing output  */
+    vx_int32 en_multi_scalar_output;
 
     /*! File path prefix for VISS outputs */
     vx_array viss_file_prefix[TIOVX_FC_MODULE_MAX_VISS_OUTPUTS];
