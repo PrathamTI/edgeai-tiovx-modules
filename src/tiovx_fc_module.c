@@ -436,7 +436,7 @@ vx_status tiovx_fc_module_init(vx_context context, TIOVXFCModuleObj *obj, Sensor
 
     if((vx_status)VX_SUCCESS == status)
     {
-        status = tiovx_fc_module_update_viss_input_params(context, obj);
+        status = tiovx_fc_module_update_input_params(context, obj);
     }
 
 }
@@ -1037,7 +1037,7 @@ vx_status tiovx_fc_module_update_crop_params(TIOVXFCModuleObj *obj)
     return status;
 }
 
-vx_status tiovx_fc_module_update_viss_input_params(TIOVXFCModuleObj *obj)
+vx_status tiovx_fc_module_update_input_params(TIOVXFCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
     vx_reference refs[1];
