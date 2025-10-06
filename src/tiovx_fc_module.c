@@ -230,7 +230,7 @@ static vx_status tiovx_fc_module_configure_scaler_coeffs(vx_context context, TIO
 
     tivx_vpac_msc_coefficients_t coeffs;
 
-    tiovx_multi_scaler_module_set_coeff(&coeffs, obj->interpolation_method);
+    tiovx_fc_module_set_coeff(&coeffs, obj->interpolation_method);
 
     /* Set Coefficients */
     obj->msc_coeff_obj = vxCreateUserDataObject(context,
@@ -657,7 +657,7 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
 
     if((vx_status)VX_SUCCESS == status)
     {
-        vxSetNodetarget(obj->node, VX_TARGET_STRING, target_string);
+        vxSetNodeTarget(obj->node, VX_TARGET_STRING, target_string);
         vxSetReferenceName((vx_reference)obj->node, "flexconnect_node");
 
         vx_bool replicate[23];
@@ -697,7 +697,7 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
         TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] Unable to create Flexconect Node! \n");
 
     }
-    tivxReleaseImage(&viss_raw_image);
+    vxReleaseImage(&viss_raw_image);
     if(ae_awb_result != NULL)
     {
         vxReleaseUserDataObject(&ae_awb_result);
@@ -1000,7 +1000,7 @@ void tiovx_fc_module_crop_params_init( TIOVXFCModuleObj *obj)
 {
     vx_int32 out;
 
-    for (out = 0; out < obj->TIOVX_FC_MODULE_MAX_MSC_OUTPUTS; out++)
+    for (out = 0; out < obj->msc_num_outputs; out++)
     {
         obj->msc_crop_params[out].crop_start_x = 0;
         obj->msc_crop_params[out].crop_start_y = 0;
