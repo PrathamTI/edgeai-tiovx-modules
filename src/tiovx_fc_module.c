@@ -257,6 +257,39 @@ static vx_status tiovx_fc_module_configure_scaler_coeffs(vx_context context, TIO
     return status;
 }
 
+static vx_status tiovx_fc_module_configure_crop_params(vx_context context, TIOVXFCModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+    vx_int32 out;
+
+    for (out = 0; out < obj->msc_num_outputs; out++)
+    {
+        obj->msc_crop_obj[out] = vxCreateUserDataObject(context,
+                "tivx_vpac_msc_crop_params_t",
+                sizeof(tivx_vpac_msc_crop_params_t),
+                NULL);
+
+        status = vxGetStatus((vx_reference)obj->msc_crop_obj[out]);
+
+        if((vx_status)VX_SUCCESS == status)
+        {
+            status = vxCopyUserDataObject(obj->msc_crop_obj[out], 0,
+                    sizeof(tivx_vpac_msc_crop_params_t),
+                    obj->msc_crop_params + out,
+                    VX_WRITE_ONLY,
+                    VX_MEMORY_TYPE_HOST);
+        }
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] Creating user data object for crop params failed!, %d\n", out);
+        }
+    }
+
+    return status;
+}
+
+
 static vx_status tiovx_fc_module_create_scaler_outputs(vx_context context, TIOVXFCModuleObj *obj)
 {
     vx_status status = VX_SUCCESS;
