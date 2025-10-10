@@ -154,6 +154,9 @@ typedef struct {
     /*! FlexConnect parameters structure */
     tivx_vpac_fc_viss_msc_params_t fc_params;
     
+    /*! Raw image create params structure */
+    tivx_raw_image_create_params_t raw_params;
+    
     /*! MSC filter coefficients data object */
     vx_user_data_object msc_coeff_obj;
     
