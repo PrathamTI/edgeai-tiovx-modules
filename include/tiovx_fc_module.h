@@ -102,10 +102,7 @@ typedef struct {
     
     /*! VISS configuration parameters */
     vx_user_data_object viss_config;
-    
-    /*! VISS parameters structure */
-    tivx_vpac_viss_params_t viss_params;
-    
+        
     /*! User data object for DCC parameter, used as node parameter */
     vx_user_data_object dcc_config;
     
@@ -153,10 +150,10 @@ typedef struct {
     
     /*! FlexConnect parameters structure */
     tivx_vpac_fc_viss_msc_params_t fc_params;
-    
+
     /*! Raw image create params structure */
     tivx_raw_image_create_params_t raw_params;
-    
+
     /*! MSC filter coefficients data object */
     vx_user_data_object msc_coeff_obj;
     
@@ -275,21 +272,23 @@ vx_status tiovx_fc_module_delete(TIOVXFCModuleObj *obj);
 * \param [in]     target_string  Target string specifying which hardware accelerator to use
 *
 */
-vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, 
-    vx_object_array raw_image_arr, vx_object_array ae_awb_result_arr, const char* target_string);
 
-/** \brief FlexConnect module release buffers helper function
-*
-* This FlexConnect helper function will release the buffers allocated during vxVerifyGraph stage
-*
-* \param [in] obj  FlexConnect Module object
-*
-*/
+/** \brief FC module release buffers helper function
+ *
+ * This VISS helper function will release the buffers alloted during vxVerifyGraph stage
+ *
+ * \param [in] obj  FC Module object
+ *
+ */
 vx_status tiovx_fc_module_release_buffers(TIOVXFCModuleObj *obj);
 
-void tiovx_fc_module_params_init(TIOVXFCModuleObj *obj);
+vx_status tiovx_fc_module_update_filter_coeffs(TIOVXFCModuleObj *obj);
 
-vx_status tiovx_fc_module_configure_controls(TIOVXFCModuleObj *obj);
+vx_status tiovx_fc_module_update_crop_params(TIOVXFCModuleObj *obj);
+
+vx_status tiovx_fc_module_update_input_params(TIOVXFCModuleObj *obj);
+
+
 #ifdef __cplusplus
 }
 #endif
