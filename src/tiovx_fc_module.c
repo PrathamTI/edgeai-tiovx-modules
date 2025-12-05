@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2021 Texas Instruments Incorporated
+ * Copyright (c) 2025 Texas Instruments Incorporated
  *
  * All rights reserved not granted herein.
  *
@@ -160,6 +160,19 @@ static vx_status tiovx_fc_module_configure_params(vx_context context, TIOVXFCMod
 
     fprintf(stderr, "Reached the end of tiovx_fc_module_configure_params function\n");
     
+    return status;
+}
+
+static vx_status tiovx_fc_module_configure_input_params(vx_context context, TIOVXFCModuleObj *obj)
+{
+    vx_status status = VX_SUCCESS;
+    tivx_vpac_fc_viss_msc_params_t fc_input_prm;
+
+    obj->fc_input_prm_obj = vxCreateUserDataObject(context,
+                                           "tivx_vpac_fc_viss_msc_params_t",
+                                           sizeof(tivx_vpac_fc_viss_msc_params_t),
+                                           &fc_input_prm);
+
     return status;
 }
 
@@ -399,8 +412,11 @@ static vx_status tiovx_fc_module_configure_scaler_coeffs(vx_context context, TIO
                                 NULL);
     status = vxGetStatus((vx_reference)obj->msc_coeff_obj);
 
+    fprintf(stderr, "scaler_coeffs check 1\n");
+
     if((vx_status)VX_SUCCESS == status)
     {
+        fprintf(stderr, "scaler_coeffs check 2\n");
         vxSetReferenceName((vx_reference)obj->msc_coeff_obj, "flexconnect_node_msc_coeff_obj");
 
         status = vxCopyUserDataObject(obj->msc_coeff_obj, 0,
@@ -408,6 +424,18 @@ static vx_status tiovx_fc_module_configure_scaler_coeffs(vx_context context, TIO
                                     &coeffs,
                                     VX_WRITE_ONLY,
                                     VX_MEMORY_TYPE_HOST);
+
+        if((vx_status)VX_SUCCESS != status)
+        {
+            fprintf(stderr, "scaler_coeffs check 3\n");
+            TIOVX_MODULE_ERROR("Unable to copy user data object in scaler coeffs\n");
+        }
+        else
+        {
+            fprintf(stderr, "scaler_coeffs check 4\n");
+            TIOVX_MODULE_PRINTF("Successfully copied user data object in scaler coeffs\n");
+        }
+
     }
     else
     {
@@ -424,17 +452,27 @@ static vx_status tiovx_fc_module_configure_dcc_params(vx_context context, TIOVXF
 
     obj->dcc_config = NULL;
 
+    fprintf(stderr, "dcc check 1\n");
     if (obj->dcc_config_file_path[0] == '\0')
     {
+        fprintf(stderr, "dcc check 2\n");
         TIOVX_MODULE_PRINTF("No DCC config file, skipping DCC configuration\n");
         return VX_SUCCESS;
     }
 
+    fprintf(stderr, "dcc check 3\n");
     FILE *fp = fopen(obj->dcc_config_file_path, "rb");
+    fprintf(stderr, "dcc check 4\n");
     if(fp == NULL)
     {
+        fprintf(stderr, "dcc check 5\n");
         TIOVX_MODULE_ERROR("Unable to open DCC config file %s!\n", obj->dcc_config_file_path);
         status = VX_FAILURE;
+    }
+    else
+    {
+        fprintf(stderr, "dcc check 6\n");
+        TIOVX_MODULE_PRINTF("Able to open DCC config filr %s\n", obj->dcc_config_file_path);
     }
 
     if((vx_status)VX_SUCCESS == status)
@@ -449,12 +487,13 @@ static vx_status tiovx_fc_module_configure_dcc_params(vx_context context, TIOVXF
         {
             uint8_t * dcc_buf;
             vx_map_id dcc_buf_map_id;
-
+            fprintf(stderr, "dcc check 7\n");
             obj->dcc_config = vxCreateUserDataObject(context, "dcc_fc_viss", dcc_buff_size, NULL );
             status = vxGetStatus((vx_reference)obj->dcc_config);
-
+            fprintf(stderr, "dcc check 8\n");
             if((vx_status)VX_SUCCESS == status)
             {
+                fprintf(stderr, "dcc check 9\n");
                 vxMapUserDataObject(
                         obj->dcc_config, 0,
                         dcc_buff_size,
@@ -496,9 +535,12 @@ static vx_status tiovx_fc_module_create_viss_input(vx_context context, TIOVXFCMo
 
     SensorObj *sensorObj = obj->sensorObj;
 
+    fprintf(stderr, "check 1 viss_input\n");
+
     /* Create ae_awb results buffer (uninitialized) */
     if(obj->viss_ae_awb_result_bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
     {
+        fprintf(stderr, "check 2 viss_input\n");
         TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] ae-awb result buffer queue depth %d greater than max supported %d!\n", obj->viss_ae_awb_result_bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
         return VX_FAILURE;
     }
@@ -514,15 +556,22 @@ static vx_status tiovx_fc_module_create_viss_input(vx_context context, TIOVXFCMo
 
     if((vx_status)VX_SUCCESS == status)
     {
+        fprintf(stderr, "check 3 viss_input\n");
         for(buf = 0; buf < obj->viss_ae_awb_result_bufq_depth; buf++)
         {
+            fprintf(stderr, "check 3.1 viss_input\n");
             obj->viss_ae_awb_result_arr[buf] = vxCreateObjectArray(context, (vx_reference)ae_awb_result, sensorObj->num_cameras_enabled);
             status = vxGetStatus((vx_reference)obj->viss_ae_awb_result_arr[buf]);
 
             if(status != VX_SUCCESS)
             {
+                fprintf(stderr, "check 4 viss_input\n");
                 TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] Unable to create ae-awb result object array! \n");
                 break;
+            }
+            else 
+            {
+                fprintf(stderr, "check 5 viss_input\n");
             }
             obj->viss_ae_awb_result_handle[buf] = (vx_user_data_object)vxGetObjectArrayItem((vx_object_array)obj->viss_ae_awb_result_arr[buf], 0);
 
@@ -530,7 +579,7 @@ static vx_status tiovx_fc_module_create_viss_input(vx_context context, TIOVXFCMo
                 void *map_ptr;
                 vx_map_id map_id;
                 vx_user_data_object ae_awb_result_obj = NULL;
-
+                fprintf(stderr, "check 5 viss_input\n");
                 ae_awb_result_obj = (vx_user_data_object)vxGetObjectArrayItem((vx_object_array)obj->viss_ae_awb_result_arr[buf], i);
                 vxMapUserDataObject(ae_awb_result_obj, 0, sizeof(tivx_ae_awb_params_t), &map_id, &map_ptr, VX_READ_ONLY, VX_MEMORY_TYPE_HOST, 0);
                 vxUnmapUserDataObject(ae_awb_result_obj, map_id);
@@ -546,10 +595,15 @@ static vx_status tiovx_fc_module_create_viss_input(vx_context context, TIOVXFCMo
 
     if((vx_status)VX_SUCCESS == status)
     {
+        fprintf(stderr, "check 6 viss_input\n");
         if(obj->viss_input.bufq_depth > TIOVX_MODULES_MAX_BUFQ_DEPTH)
         {
             TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] viss_input raw image buffer queue depth %d greater than max supported %d!\n", obj->viss_input.bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
             return VX_FAILURE;
+        }
+        else
+        {
+            fprintf(stderr, "check 7 viss_input\n");
         }
 
         for(buf = 0; buf < TIOVX_MODULES_MAX_BUFQ_DEPTH; buf++)
@@ -563,6 +617,7 @@ static vx_status tiovx_fc_module_create_viss_input(vx_context context, TIOVXFCMo
 
         if((vx_status)VX_SUCCESS == status)
         {
+            fprintf(stderr, "check 8 viss_input\n");
             for(buf = 0; buf < obj->viss_input.bufq_depth; buf++)
             {
                 obj->viss_input.arr[buf] = vxCreateObjectArray(context, (vx_reference)raw_image, sensorObj->num_cameras_enabled);
@@ -572,9 +627,14 @@ static vx_status tiovx_fc_module_create_viss_input(vx_context context, TIOVXFCMo
                 {
                     TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] Unable to create viss_input raw image array! \n");
                 }
+                else 
+                {
+                    fprintf(stderr, "Created viss_input raw image array\n");
+                }
                 obj->viss_input.image_handle[buf] = (tivx_raw_image)vxGetObjectArrayItem((vx_object_array)obj->viss_input.arr[buf], 0);
             }
             tivxReleaseRawImage(&raw_image);
+            fprintf(stderr, "check 9 viss_input\n");
         }
         else
         {
@@ -593,8 +653,10 @@ static vx_status tiovx_fc_module_configure_crop_params(vx_context context, TIOVX
     vx_status status = VX_SUCCESS;
     vx_int32 out;
 
+    
     for (out = 0; out < obj->msc_num_outputs; out++)
     {
+        fprintf(stderr, "crop params check 1\n");
         obj->msc_crop_obj[out] = vxCreateUserDataObject(context,
                 "tivx_vpac_msc_crop_params_t",
                 sizeof(tivx_vpac_msc_crop_params_t),
@@ -604,6 +666,7 @@ static vx_status tiovx_fc_module_configure_crop_params(vx_context context, TIOVX
 
         if((vx_status)VX_SUCCESS == status)
         {
+            fprintf(stderr, "crop params check 1\n");
             status = vxCopyUserDataObject(obj->msc_crop_obj[out], 0,
                     sizeof(tivx_vpac_msc_crop_params_t),
                     obj->msc_crop_params + out,
@@ -640,6 +703,10 @@ static vx_status tiovx_fc_module_create_scaler_outputs(vx_context context, TIOVX
         TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] Number of outputs %d greater than max supported %d!\n", obj->msc_num_outputs, TIOVX_FC_MODULE_MAX_MSC_OUTPUTS);
         return VX_FAILURE;
     }
+    else
+    {
+        fprintf(stderr,"[FLEX-CONNECT-MODULE] Number of outputs are %d\n",obj->msc_num_outputs);
+    }
 
     for(out = 0; out < obj->msc_num_outputs; out++)
     {
@@ -647,6 +714,10 @@ static vx_status tiovx_fc_module_create_scaler_outputs(vx_context context, TIOVX
         {
             TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] Output buffer queue depth %d greater than max supported %d!\n", obj->msc_output[out].bufq_depth, TIOVX_MODULES_MAX_BUFQ_DEPTH);
             return VX_FAILURE;
+        }
+        else 
+        {
+            fprintf(stderr, "[FLEX-CONNECT-MODULE] Output buffer queue is %d\n", obj->msc_output[out].bufq_depth);
         }
     }
 
@@ -747,6 +818,10 @@ static vx_status tiovx_fc_module_create_scaler_outputs(vx_context context, TIOVX
                         status = VX_ERROR_INVALID_REFERENCE;
                         break;
                 }
+                else
+                {
+                    fprintf(stderr, "[create_scaler_outputs] Image handle for output %p\n",obj->msc_output[out].image_handle[buf]);
+                }
             }
             vxReleaseImage(&out_img);
         }
@@ -758,7 +833,7 @@ static vx_status tiovx_fc_module_create_scaler_outputs(vx_context context, TIOVX
         }
     }
 
-    obj->en_out_write = 1;
+    // obj->en_out_write = 1;
 
     fprintf(stderr, "en_out_write is %d\n", obj->en_out_write);
 
@@ -931,6 +1006,11 @@ vx_status tiovx_fc_module_init(vx_context context, TIOVXFCModuleObj *obj, Sensor
         status = tiovx_fc_module_configure_crop_params(context, obj);
     }
 
+    if((vx_status)VX_SUCCESS == status)
+    {
+        status = tiovx_fc_module_configure_input_params(context, obj);
+    }
+    
     return status;
 
 }
@@ -940,6 +1020,12 @@ vx_status tiovx_fc_module_deinit(TIOVXFCModuleObj *obj)
     fprintf(stderr, "Entering tiovx_fc_module_deinit\n");
     vx_status status = VX_SUCCESS;
     vx_int32 buf;
+    tivx_raw_image viss_raw_image = NULL;
+
+    if (obj == NULL) {
+        fprintf(stderr, "[FLEX-CONNECT-MODULE] Object is NULL\n");
+        return VX_ERROR_INVALID_REFERENCE;
+    }
 
     if(((vx_status)VX_SUCCESS == status) && (obj->fc_config != NULL))
     {
@@ -1007,7 +1093,7 @@ vx_status tiovx_fc_module_deinit(TIOVXFCModuleObj *obj)
         }
     }
 
-     for( int out = 0; out < obj->msc_num_outputs; out++)
+    for( int out = 0; out < obj->msc_num_outputs; out++)
     {
         for(buf = 0; buf < obj->msc_output[out].bufq_depth; buf++)
         {
@@ -1073,75 +1159,105 @@ vx_status tiovx_fc_module_delete(TIOVXFCModuleObj *obj)
 {
     fprintf(stderr, "[tiovx_fc_module_delete] Entering tiovx_fc_module_delete\n");
     vx_status status = VX_SUCCESS;
-    vx_int32 msc_num_outputs = obj->msc_num_outputs;
-    vx_int32 out;
+    // vx_int32 msc_num_outputs = obj->msc_num_outputs;
+    // vx_int32 out;
     
-    // First, check if the node exists before trying to release it
-    if(obj->node != NULL)
-    {
-        fprintf(stderr, "[FLEX-CONNECT-MODULE] Releasing node reference!\n");
-        fprintf(stderr, "The node is: %p\n", obj->node);
-        fprintf(stderr, "Releasing the node");
-
-        status = vxReleaseNode(&obj->node);
+     
+    if(obj->node != NULL) {
+        printf("The node in module_delete is %p\n", obj->node);
         
-        fprintf(stderr, "Node verification check\n");
-        
-        if (status != VX_SUCCESS) {
-            fprintf(stderr, "[FLEX-CONNECT-MODULE] Error releasing node: %d\n", status);
-        }
-    
-    }
-    else
-    {
-        fprintf(stderr, "The node is NULL\n");
-    }
-    
-    // Release all write nodes
-    for(out = 0; out < msc_num_outputs; out++)
-    {
-        if(obj->msc_write_node[out] != NULL)
-        {
-            fprintf(stderr,"[MULTI-SCALER-MODULE] Releasing write node [%d]!\n", out);
-            vx_status temp_status = vxReleaseNode(&obj->msc_write_node[out]);
-            if(temp_status != VX_SUCCESS)
-            {
-                fprintf(stderr, "[FLEX-CONNECT-MODULE] Error releasing write node %d: %d\n", out, temp_status);
-                // Update status only if it was previously successful
-                if (status == VX_SUCCESS) {
-                    status = temp_status;
-                }
+        // Check if node reference is valid
+        vx_status check_status = vxGetStatus((vx_reference)obj->node);
+        if(check_status == VX_SUCCESS) {
+            fprintf(stderr, "Node reference is valid, sending DELETE_GRAPH command\n");
+            status = tivxNodeSendCommand(obj->node, 0u, 
+                                       TIVX_VPAC_FC_DELETE_GRAPH, NULL, 0u);
+            vxReleaseNode(&obj->node);
+            vxReleaseUserDataObject(&obj->fc_config);
+            
+            if((vx_status)VX_SUCCESS != status) {
+                TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] Node send command TIVX_VPAC_FC_DELETE_GRAPH, failed!\n");
+            } else {
+                fprintf(stderr, "[FLEX-CONNECT-MODULE] DELETE_GRAPH command sent successfully\n");
             }
-            obj->msc_write_node[out] = NULL;
+        } else {
+            fprintf(stderr, "Node reference is invalid (status=%d), skipping DELETE_GRAPH command\n", check_status);
         }
-        else
-        {
-            fprintf(stderr, "The msc_output_node is NULL\n");
-        }
+    } else {
+        printf("The node is NULL\n");
     }
-    
-    // Release H3A write node if it exists
-    if(obj->h3a_write_node != NULL)
-    {
-        fprintf(stderr, "[FLEX-CONNECT-MODULE] Releasing h3a write node reference!\n");
-        vx_status temp_status = vxReleaseNode(&obj->h3a_write_node);
-        if(temp_status != VX_SUCCESS)
-        {
-            fprintf(stderr, "[FLEX-CONNECT-MODULE] Error releasing H3A write node: %d\n", temp_status);
-            // Update status only if it was previously successful
-            if (status == VX_SUCCESS) {
-                status = temp_status;
-            }
-        }
-        // Clear the reference regardless of status
-        obj->h3a_write_node = NULL;
-    }
-    else
-    {
-        fprintf(stderr, "The h3a_write_node is NULL\n");
-    }
-    
     return status;
+   
+    // // First, check if the node exists before trying to release it
+    // if(obj->node != NULL)
+    // {
+    //     fprintf(stderr, "[FLEX-CONNECT-MODULE] Attempting to release node reference\n");
+    //     fprintf(stderr, "The node is: %p\n", obj->node);
+        
+    //     vx_status check_status = vxGetStatus((vx_reference)obj->node);
+    //     if (check_status == VX_SUCCESS) {
+    //         fprintf(stderr, "Node reference is valid, releasing it\n");
+    //         status = vxReleaseNode(&obj->node);
+    //         if (status != VX_SUCCESS) {
+    //             fprintf(stderr, "[FLEX-CONNECT-MODULE] Error releasing node: %d\n", status);
+    //         } else {
+    //             fprintf(stderr, "Node released successfully\n");
+    //         }
+    //     } else {
+    //         fprintf(stderr, "Node reference is invalid (status=%d), not releasing\n", check_status);
+    //         obj->node = NULL;
+    //     }
+    // }
+    // else
+    // {
+    //     fprintf(stderr, "The node is NULL\n");
+    // }
+    
+    // // Release all write nodes
+    // for(out = 0; out < msc_num_outputs; out++)
+    // {
+    //     if(obj->msc_write_node[out] != NULL)
+    //     {
+    //         fprintf(stderr,"[MULTI-SCALER-MODULE] Releasing write node [%d]!\n", out);
+    //         vx_status temp_status = vxReleaseNode(&obj->msc_write_node[out]);
+    //         if(temp_status != VX_SUCCESS)
+    //         {
+    //             fprintf(stderr, "[FLEX-CONNECT-MODULE] Error releasing write node %d: %d\n", out, temp_status);
+    //             // Update status only if it was previously successful
+    //             if (status == VX_SUCCESS) {
+    //                 status = temp_status;
+    //             }
+    //         }
+    //         obj->msc_write_node[out] = NULL;
+    //     }
+    //     else
+    //     {
+    //         fprintf(stderr, "The msc_output_node is NULL\n");
+    //     }
+    // }
+    
+    // // Release H3A write node if it exists
+    // if(obj->h3a_write_node != NULL)
+    // {
+    //     fprintf(stderr, "[FLEX-CONNECT-MODULE] Releasing h3a write node reference!\n");
+    //     vx_status temp_status = vxReleaseNode(&obj->h3a_write_node);
+    //     if(temp_status != VX_SUCCESS)
+    //     {
+    //         fprintf(stderr, "[FLEX-CONNECT-MODULE] Error releasing H3A write node: %d\n", temp_status);
+    //         // Update status only if it was previously successful
+    //         if (status == VX_SUCCESS) {
+    //             status = temp_status;
+    //         }
+    //     }
+    //     // Clear the reference regardless of status
+    //     obj->h3a_write_node = NULL;
+    // }
+    // else
+    // {
+    //     fprintf(stderr, "The h3a_write_node is NULL\n");
+    // }
+    
+    // return status;
 }
 
 vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_object_array raw_image_arr, vx_object_array ae_awb_result_arr, const char* target_string)
@@ -1154,10 +1270,26 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
     // vx_user_data_object h3a_stats = NULL;
     vx_image msc_outputs[TIOVX_FC_MODULE_MAX_MSC_OUTPUTS] = {NULL};
 
-    if (graph == NULL) {
-        fprintf(stderr, "[FC-ERROR] Input graph is NULL\n");
-        return VX_ERROR_INVALID_REFERENCE;
+    // if (graph == NULL) {
+    //     fprintf(stderr, "[FC-ERROR] Input graph is NULL\n");
+    //     return VX_ERROR_INVALID_REFERENCE;
+    // }
+    // else{
+    //     fprintf(stderr,"Graph is %p\n", graph);
+    // }    
+
+    status = vxVerifyGraph(graph);
+
+    if(status != VX_SUCCESS)
+    {
+        TIOVX_MODULE_ERROR("Graph Verify failed");
+        return status;
     }
+    else 
+    {
+        fprintf(stderr, "Graph verification is done in fc $$$$$$$$$$$$$$$$$ %p $$$$$$$$$$$$$$$$$\n", graph);
+    }
+
 
     fprintf(stderr, "[FC-MODULE-DEBUG] Starting module_create with num_outputs=%d\n", obj->msc_num_outputs);
     
@@ -1231,6 +1363,19 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
 
         }
     } 
+
+
+    status = vxVerifyGraph(graph);
+
+    if(status != VX_SUCCESS)
+    {
+        TIOVX_MODULE_ERROR("Graph Verify failed");
+        return status;
+    }
+    else 
+    {
+        fprintf(stderr, "2nd Graph verification is done\n");
+    }
 
 
     // raw image viss_input 
@@ -1327,9 +1472,18 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
 
     status = vxGetStatus((vx_reference)obj->node);
 
+    fprintf(stderr, "[FC-CREATE] Node creation status: %d, node: %p\n", status, obj->node);
+    
+    if(status != VX_SUCCESS) {
+        fprintf(stderr, "[FC-ERROR] Failed to create FC node: %d\n", status);
+        goto cleanup;
+    }
+
+    fprintf(stderr, "Node creation status is success 0: %p\n", obj->node);
+
     if((vx_status)VX_SUCCESS == status)
     {
-        fprintf(stderr, "Node creation status is success.\n");
+        fprintf(stderr, "Node creation status is success: %p\n", obj->node);
 
         // Don't set node target if target_string is NULL or empty
         if (target_string != NULL && target_string[0] != '\0') 
@@ -1355,7 +1509,7 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
             fprintf(stderr, "[FC-ERROR] Failed to set node name: %d\n", status);
         }
 
-        fprintf(stderr, "The node is %p\n,",obj->node);
+        fprintf(stderr, "The node is %p\n",obj->node);
         
         vx_bool replicate[23];
 
@@ -1402,11 +1556,13 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
         if (status != VX_SUCCESS) {
             fprintf(stderr, "[FC-ERROR] Failed to replicate node: %d\n", status);
         }
-    } else {
+    } 
+    else
+    {
         fprintf(stderr, "check 2\n");
         fprintf(stderr, "[FC-ERROR] Unable to create FlexConnect Node: %d\n", status);
     }
-    
+        
     cleanup:
     fprintf(stderr, "check 3\n");
     vx_status original_status = status; 
@@ -1432,7 +1588,7 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
 
     fprintf(stderr, "check 5\n");
 
-    obj->en_out_write = 1;
+    // obj->en_out_write = 1;
 
     if(obj->en_out_write == 1)
     {
@@ -1442,7 +1598,9 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
         if (original_status == VX_SUCCESS && write_status != VX_SUCCESS) {
             fprintf(stderr, "[FC-WARNING] write_output_node failed but preserving original success status\n");
         }
-    }else {
+    }
+    else
+    {
         fprintf(stderr, "Skipping en_out_write (value = %d)\n", obj->en_out_write);
     }
     fprintf(stderr, "[FC-DEBUG] Final status before return: %d (original: %d)\n", status, original_status);
@@ -1452,7 +1610,6 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
 
 vx_status tiovx_fc_module_release_buffers(TIOVXFCModuleObj *obj)
 {
-    fprintf(stderr, "Entering tiovx_fc_module_release_buffers\n");
     vx_status status = VX_SUCCESS;
 
     SensorObj *sensorObj = obj->sensorObj;
@@ -1460,7 +1617,7 @@ vx_status tiovx_fc_module_release_buffers(TIOVXFCModuleObj *obj)
     void *virtAddr[TIOVX_MODULES_MAX_REF_HANDLES] = {NULL};
     vx_uint32   size[TIOVX_MODULES_MAX_REF_HANDLES];
     vx_uint32   numEntries;
-    vx_int32 bufq, ch;
+    vx_int32    out, bufq, ch;
 
     /* Free raw viss_input handles */
     for(bufq = 0; bufq < obj->viss_input.bufq_depth; bufq++)
@@ -1509,6 +1666,64 @@ vx_status tiovx_fc_module_release_buffers(TIOVXFCModuleObj *obj)
         }
     }
 
+    for(out = 0; out < obj->msc_num_outputs; out++)
+    {
+        for(bufq = 0; bufq < obj->msc_output[out].bufq_depth; bufq++)
+        {
+            for(ch = 0; ch < obj->num_channels; ch++)
+            {
+                vx_reference ref = vxGetObjectArrayItem(obj->msc_output[out].arr[bufq], ch);
+                status = vxGetStatus((vx_reference)ref);
+
+                if((vx_status)VX_SUCCESS == status)
+                {
+                    /* Export handles to get valid size information. */
+                    status = tivxReferenceExportHandle(ref,
+                                                       virtAddr,
+                                                       size,
+                                                       TIOVX_MODULES_MAX_REF_HANDLES,
+                                                       &numEntries);
+
+                    if((vx_status)VX_SUCCESS == status)
+                    {
+                        vx_int32 ctr;
+                        /* Currently the vx_image buffers are alloated in one shot for multiple planes.
+                           So if we are freeing this buffer then we need to get only the first plane
+                           pointer address but add up the all the sizes to free the entire buffer */
+                        vx_uint32 freeSize = 0;
+                        for(ctr = 0; ctr < numEntries; ctr++)
+                        {
+                            freeSize += size[ctr];
+                        }
+
+                        if(virtAddr[0] != NULL)
+                        {
+                            TIOVX_MODULE_PRINTF("[MULTI-SCALER-MODULE] Freeing output[%d], bufq=%d, ch=%d, addr = 0x%016lX, size = %d \n", out, bufq, ch, (vx_uint64)virtAddr[0], freeSize);
+                            tivxMemFree(virtAddr[0], freeSize, TIVX_MEM_EXTERNAL);
+                        }
+
+                        for(ctr = 0; ctr < numEntries; ctr++)
+                        {
+                            virtAddr[ctr] = NULL;
+                        }
+
+                        /* Assign NULL handles to the OpenVx objects as it will avoid
+                            doing a tivxMemFree twice, once now and once during release */
+                        status = tivxReferenceImportHandle(ref,
+                                                        (const void **)virtAddr,
+                                                        (const uint32_t *)size,
+                                                        numEntries);
+                    }
+                    vxReleaseReference(&ref);
+                }
+            }
+        }
+    }
+    if ((vx_status)VX_SUCCESS != status)
+    {
+        TIOVX_MODULE_ERROR("[MULTI-SCALER-MODULE] tivxReferenceExportHandle() failed.\n");
+    }
+
     return status;
 }
 
@@ -1555,88 +1770,205 @@ vx_status tiovx_fc_module_update_filter_coeffs(TIOVXFCModuleObj *obj)
 {
     fprintf(stderr, "Entering tiovx_fc_module_update_filter_coeffs\n");
     vx_status status = VX_SUCCESS;
+    vx_user_data_object msc_inst_id_obj;
+    vx_reference refs[2];
+    uint32_t msc_inst_id;
+    vx_context context = NULL;
+    
+    if (obj->node) {
+        context = vxGetContext((vx_reference)obj->node);
+    }
+    
+    if (context == NULL) {
+        fprintf(stderr, "[FLEX-CONNECT-MODULE] Failed to get context from node\n");
+        return VX_ERROR_INVALID_REFERENCE;
+    }
+    else
+    {
+        fprintf(stderr, "Able to retrieve context from the node\n");
+    }
 
-    vx_reference refs[1];
+    #if defined(VPAC3)
+            msc_inst_id = TIVX_VPAC_FC_MSC1;
+        #else
+            msc_inst_id = TIVX_VPAC_FC_MSC0;
+        #endif
+
+    msc_inst_id_obj = vxCreateUserDataObject(context,
+            "uint32_t",
+            sizeof(uint32_t), NULL);
+
+    vxCopyUserDataObject(msc_inst_id_obj, 0,
+            sizeof(uint32_t), &msc_inst_id, VX_WRITE_ONLY,
+            VX_MEMORY_TYPE_HOST);
 
     refs[0] = (vx_reference)obj->msc_coeff_obj;
+    refs[1] = (vx_reference)msc_inst_id_obj;
+
     if((vx_status)VX_SUCCESS == status)
     {
+        printf("[MULTI-SCALER-MODULE] Check update filter coeffs\n");
         status = tivxNodeSendCommand(obj->node, 0u,
                                  TIVX_VPAC_FC_MSC_CMD_SET_COEFF,
-                                 refs, 1u);
+                                 refs, 2u);
 
-        TIOVX_MODULE_PRINTF("[FLEX-CONNECT-MODULE] App Send MSC Command Done!\n");
+        fprintf(stderr, "[FLEX-CONNECT-MODULE] App Send MSC Command Done!\n");
+    }else 
+    {
+        fprintf(stderr, "[FLEX-CONNECT-MODULE] App send msc command failed!\n");
     }
+
 
     if((vx_status)VX_SUCCESS != status)
     {
         TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] Node send command failed!\n");
     }
-
+    else 
+    {
+        fprintf(stderr, "[FLEX-CONNECT-MODULE] Node send command passed!\n");
+    }
+    vxReleaseUserDataObject(&msc_inst_id_obj);
+    printf("Filter coeffs return status is %d\n", status);
     return status;
 }
 
-void tiovx_fc_module_crop_params_init( TIOVXFCModuleObj *obj)
-{
-    fprintf(stderr, "Entering ttiovx_fc_module_crop_params_init\n");
-    vx_int32 out;
+// vx_status tiovx_fc_module_update_crop_params(TIOVXFCModuleObj *obj)
+// {
+//     fprintf(stderr, "Entering tiovx_fc_module_update_crop_params\n");
+//     vx_status status = VX_SUCCESS;
+//     vx_reference refs[TIOVX_FC_MODULE_MAX_MSC_OUTPUTS];
+//     // vx_int32 out;
 
-    for (out = 0; out < obj->msc_num_outputs; out++)
-    {
-        obj->msc_crop_params[out].crop_start_x = 0;
-        obj->msc_crop_params[out].crop_start_y = 0;
-        obj->msc_crop_params[out].crop_width = obj->viss_input.params.width;
-        obj->msc_crop_params[out].crop_height = obj->viss_input.params.height;
-    }
+//     // for (out = 0; out < obj->msc_num_outputs; out++)
+//     // {
+//     //     refs[out] = (vx_reference)obj->msc_crop_obj[out];
+//     // }    
 
-
-}
-
-vx_status tiovx_fc_module_update_crop_params(TIOVXFCModuleObj *obj)
-{
-    fprintf(stderr, "Entering tiovx_fc_module_update_crop_params\n");
-    vx_status status = VX_SUCCESS;
-    vx_reference refs[TIOVX_FC_MODULE_MAX_MSC_OUTPUTS];
-    // vx_int32 out;
-
-    // for (out = 0; out < obj->msc_num_outputs; out++)
-    // {
-    //     refs[out] = (vx_reference)obj->msc_crop_obj[out];
-    // }    
-
-    refs[0] = (vx_reference)obj->msc_crop_obj[0];
+//     refs[0] = (vx_reference)obj->msc_crop_obj[0];
     
-    status = tivxNodeSendCommand(obj->node, 0u,
-                                TIVX_VPAC_FC_MSC_CMD_SET_CROP_PARAMS,
-                                refs, 1u);
+//     status = tivxNodeSendCommand(obj->node, 0u,
+//                                 TIVX_VPAC_FC_MSC_CMD_SET_CROP_PARAMS,
+//                                 refs, 1u);
 
-    if((vx_status)VX_SUCCESS != status)
-    {
-        TIOVX_MODULE_ERROR("[FLEXCONNECT-MODULE] Node send command TIVX_VPAC_FC_MSC_CMD_SET_CROP_PARAMS, failed!\n");
-    }
+//     if((vx_status)VX_SUCCESS != status)
+//     {
+//         TIOVX_MODULE_ERROR("[FLEXCONNECT-MODULE] Node send command TIVX_VPAC_FC_MSC_CMD_SET_CROP_PARAMS, failed!\n");
+//     }
 
-    return status;
-}
+//     return status;
+// }
 
-vx_status tiovx_fc_module_update_input_params(TIOVXFCModuleObj *obj)
-{
-    fprintf(stderr, "Entering tiovx_fc_module_update_input_params\n");
-    vx_status status = VX_SUCCESS;
-    vx_reference refs[1];
 
-    refs[0] = (vx_reference)(obj->fc_input_prm_obj);
-    status = tivxNodeSendCommand(obj->node, 0u,
-                                 TIVX_VPAC_FC_MSC_CMD_SET_INPUT_PARAMS,
-                                 refs, 1u);
+// vx_status tiovx_fc_module_update_input_params(TIOVXFCModuleObj *obj)
+// {
+//     fprintf(stderr, "Entering tiovx_fc_module_update_input_params\n");
+//     vx_status status = VX_SUCCESS;
+//     vx_reference refs[1];
 
-    if((vx_status)VX_SUCCESS != status)
-    {
-        TIOVX_MODULE_ERROR(
-                "[FLEX-CONNECT-MODULE] Node send command "
-                "TIVX_VPAC_FC_MSC_CMD_SET_INPUT_PARAMS, failed!\n");
-    }
+//     if(obj->fc_input_prm_obj == NULL){
 
-    vxReleaseUserDataObject(&(obj->fc_input_prm_obj));
+//         printf("obj->fc_input_prm_obj is NULL\n");
+//     }
+//     else{
+//         printf("Able to retrieve obj->fc_input_prm_obj in tiovx_fc_module_update_input_params\n");
+//         refs[0] = (vx_reference)(obj->fc_input_prm_obj);
+//     }
 
-    return status;
-}
+//     status = tivxNodeSendCommand(obj->node, 0u,
+//                                  TIVX_VPAC_FC_MSC_CMD_SET_INPUT_PARAMS,
+//                                  refs, 1u);
+
+//     if((vx_status)VX_SUCCESS != status)
+//     {
+//         TIOVX_MODULE_ERROR(
+//                 "[FLEX-CONNECT-MODULE] Node send command "
+//                 "TIVX_VPAC_FC_MSC_CMD_SET_INPUT_PARAMS, failed!\n");
+//     }
+
+//     vxReleaseUserDataObject(&(obj->fc_input_prm_obj));
+
+//     return status;
+// }
+
+// vx_status tiovx_fc_module_update_input_params(TIOVXFCModuleObj *obj)
+// {
+//     fprintf(stderr, "Entering tiovx_fc_module_update_input_params\n");
+//     vx_status status = VX_SUCCESS;
+//     vx_user_data_object msc_inst_id_obj = NULL;
+//     vx_reference refs[2];
+//     uint32_t msc_inst_id;
+//     vx_context context = NULL;
+
+//     if (obj == NULL || obj->node == NULL) {
+//         fprintf(stderr, "[FLEX-CONNECT-MODULE] Invalid object or node\n");
+//         return VX_ERROR_INVALID_REFERENCE;
+//     }
+
+//     context = vxGetContext((vx_reference)obj->node);
+//     if (context == NULL) {
+//         fprintf(stderr, "[FLEX-CONNECT-MODULE] Failed to get context from node\n");
+//         return VX_ERROR_INVALID_REFERENCE;
+//     }
+//     fprintf(stderr, "Successfully retrieved context from node\n");
+
+//     if (obj->fc_input_prm_obj == NULL) {
+//         fprintf(stderr, "[FLEX-CONNECT-MODULE] fc_input_prm_obj is NULL\n");
+//         return VX_ERROR_INVALID_REFERENCE;
+//     }
+//     fprintf(stderr, "fc_input_prm_obj is valid: %p\n", obj->fc_input_prm_obj);
+
+// #if defined(VPAC3)
+//     msc_inst_id = TIVX_VPAC_FC_MSC1;
+//     fprintf(stderr, "Using MSC instance ID: MSC1 (VPAC3)\n");
+// #else
+//     msc_inst_id = TIVX_VPAC_FC_MSC0;
+//     fprintf(stderr, "Using MSC instance ID: MSC0\n");
+// #endif
+
+//     msc_inst_id_obj = vxCreateUserDataObject(context,
+//                                               "uint32_t",
+//                                               sizeof(uint32_t), 
+//                                               NULL);
+//     if (vxGetStatus((vx_reference)msc_inst_id_obj) != VX_SUCCESS) {
+//         fprintf(stderr, "[FLEX-CONNECT-MODULE] Failed to create msc_inst_id_obj\n");
+//         return VX_FAILURE;
+//     }
+//     fprintf(stderr, "Created msc_inst_id_obj: %p\n", msc_inst_id_obj);
+
+//     status = vxCopyUserDataObject(msc_inst_id_obj, 0,
+//                                    sizeof(uint32_t), 
+//                                    &msc_inst_id, 
+//                                    VX_WRITE_ONLY,
+//                                    VX_MEMORY_TYPE_HOST);
+//     if (status != VX_SUCCESS) {
+//         fprintf(stderr, "[FLEX-CONNECT-MODULE] Failed to copy msc_inst_id: %d\n", status);
+//         vxReleaseUserDataObject(&msc_inst_id_obj);
+//         return status;
+//     }
+//     fprintf(stderr, "Copied MSC instance ID value: %u\n", msc_inst_id);
+
+//     refs[0] = (vx_reference)obj->fc_input_prm_obj;
+//     refs[1] = (vx_reference)msc_inst_id_obj;
+
+//     fprintf(stderr, "[FLEX-CONNECT-MODULE] Sending command with refs[0]=%p, refs[1]=%p\n", 
+//             refs[0], refs[1]);
+
+//     status = tivxNodeSendCommand(obj->node, 
+//                                   0u,
+//                                   TIVX_VPAC_FC_MSC_CMD_SET_INPUT_PARAMS,
+//                                   refs, 
+//                                   2u);
+
+//     if (status != VX_SUCCESS) {
+//         TIOVX_MODULE_ERROR(
+//             "[FLEX-CONNECT-MODULE] Node send command "
+//             "TIVX_VPAC_FC_MSC_CMD_SET_INPUT_PARAMS failed! Status: %d\n", status);
+//     } else {
+//         fprintf(stderr, "[FLEX-CONNECT-MODULE] Successfully sent SET_INPUT_PARAMS command\n");
+//     }
+
+//     vxReleaseUserDataObject(&msc_inst_id_obj);
+    
+//     fprintf(stderr, "Exiting tiovx_fc_module_update_input_params with status: %d\n", status);
+//     return status;
+// }
