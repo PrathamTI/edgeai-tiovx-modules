@@ -80,7 +80,7 @@ static vx_status tiovx_fc_module_configure_params(vx_context context, TIOVXFCMod
 
     if (params->tivxVissPrms.enable_ir_op) {
         fprintf(stderr, "IR operation is enabled\n");
-        params->tivxVissPrms.fcp[0].mux_output0 = TIVX_VPAC_VISS_MUX0_IR8;        
+        // params->tivxVissPrms.fcp[0].mux_output0 = TIVX_VPAC_VISS_MUX0_IR8;        
         params->tivxVissPrms.h3a_in = TIVX_VPAC_VISS_H3A_IN_LSC;
     }
     else if (params->tivxVissPrms.enable_bayer_op) {        
@@ -1020,7 +1020,6 @@ vx_status tiovx_fc_module_deinit(TIOVXFCModuleObj *obj)
     fprintf(stderr, "Entering tiovx_fc_module_deinit\n");
     vx_status status = VX_SUCCESS;
     vx_int32 buf;
-    tivx_raw_image viss_raw_image = NULL;
 
     if (obj == NULL) {
         fprintf(stderr, "[FLEX-CONNECT-MODULE] Object is NULL\n");
@@ -1037,6 +1036,41 @@ vx_status tiovx_fc_module_deinit(TIOVXFCModuleObj *obj)
     {
         fprintf(stderr,"[FLEX-CONNECT-MODULE] Releasing DCC config handle!\n");
         status = vxReleaseUserDataObject(&obj->dcc_config);
+    }
+
+    if (obj->h3a_write_node) {
+        vxReleaseNode(&obj->h3a_write_node);
+        obj->h3a_write_node = NULL;
+    }
+
+    for (int out = 0; out < obj->msc_num_outputs; out++) {
+        if (obj->msc_write_node[out]) {
+            vxReleaseNode(&obj->msc_write_node[out]);
+            obj->msc_write_node[out] = NULL;
+        }
+        if (obj->msc_write_cmd[out]) {
+            vxReleaseUserDataObject(&obj->msc_write_cmd[out]);
+            obj->msc_write_cmd[out] = NULL;
+        }
+        if (obj->msc_file_prefix[out]) {
+            vxReleaseArray(&obj->msc_file_prefix[out]);
+            obj->msc_file_prefix[out] = NULL;
+        }
+    }
+
+    if (obj->file_path) {
+        vxReleaseArray(&obj->file_path);
+        obj->file_path = NULL;
+    }
+
+    if (obj->msc_coeff_obj) {
+        vxReleaseUserDataObject(&obj->msc_coeff_obj);
+        obj->msc_coeff_obj = NULL;
+    }
+
+    if (obj->fc_input_prm_obj) {
+        vxReleaseUserDataObject(&obj->fc_input_prm_obj);
+        obj->fc_input_prm_obj = NULL;
     }
 
     if((vx_status)VX_SUCCESS == status)
@@ -1173,8 +1207,8 @@ vx_status tiovx_fc_module_delete(TIOVXFCModuleObj *obj)
             status = tivxNodeSendCommand(obj->node, 0u, 
                                        TIVX_VPAC_FC_DELETE_GRAPH, NULL, 0u);
             vxReleaseNode(&obj->node);
-            vxReleaseUserDataObject(&obj->fc_config);
-            
+            obj->node = NULL;
+
             if((vx_status)VX_SUCCESS != status) {
                 TIOVX_MODULE_ERROR("[FLEX-CONNECT-MODULE] Node send command TIVX_VPAC_FC_DELETE_GRAPH, failed!\n");
             } else {
@@ -1188,76 +1222,6 @@ vx_status tiovx_fc_module_delete(TIOVXFCModuleObj *obj)
     }
     return status;
    
-    // // First, check if the node exists before trying to release it
-    // if(obj->node != NULL)
-    // {
-    //     fprintf(stderr, "[FLEX-CONNECT-MODULE] Attempting to release node reference\n");
-    //     fprintf(stderr, "The node is: %p\n", obj->node);
-        
-    //     vx_status check_status = vxGetStatus((vx_reference)obj->node);
-    //     if (check_status == VX_SUCCESS) {
-    //         fprintf(stderr, "Node reference is valid, releasing it\n");
-    //         status = vxReleaseNode(&obj->node);
-    //         if (status != VX_SUCCESS) {
-    //             fprintf(stderr, "[FLEX-CONNECT-MODULE] Error releasing node: %d\n", status);
-    //         } else {
-    //             fprintf(stderr, "Node released successfully\n");
-    //         }
-    //     } else {
-    //         fprintf(stderr, "Node reference is invalid (status=%d), not releasing\n", check_status);
-    //         obj->node = NULL;
-    //     }
-    // }
-    // else
-    // {
-    //     fprintf(stderr, "The node is NULL\n");
-    // }
-    
-    // // Release all write nodes
-    // for(out = 0; out < msc_num_outputs; out++)
-    // {
-    //     if(obj->msc_write_node[out] != NULL)
-    //     {
-    //         fprintf(stderr,"[MULTI-SCALER-MODULE] Releasing write node [%d]!\n", out);
-    //         vx_status temp_status = vxReleaseNode(&obj->msc_write_node[out]);
-    //         if(temp_status != VX_SUCCESS)
-    //         {
-    //             fprintf(stderr, "[FLEX-CONNECT-MODULE] Error releasing write node %d: %d\n", out, temp_status);
-    //             // Update status only if it was previously successful
-    //             if (status == VX_SUCCESS) {
-    //                 status = temp_status;
-    //             }
-    //         }
-    //         obj->msc_write_node[out] = NULL;
-    //     }
-    //     else
-    //     {
-    //         fprintf(stderr, "The msc_output_node is NULL\n");
-    //     }
-    // }
-    
-    // // Release H3A write node if it exists
-    // if(obj->h3a_write_node != NULL)
-    // {
-    //     fprintf(stderr, "[FLEX-CONNECT-MODULE] Releasing h3a write node reference!\n");
-    //     vx_status temp_status = vxReleaseNode(&obj->h3a_write_node);
-    //     if(temp_status != VX_SUCCESS)
-    //     {
-    //         fprintf(stderr, "[FLEX-CONNECT-MODULE] Error releasing H3A write node: %d\n", temp_status);
-    //         // Update status only if it was previously successful
-    //         if (status == VX_SUCCESS) {
-    //             status = temp_status;
-    //         }
-    //     }
-    //     // Clear the reference regardless of status
-    //     obj->h3a_write_node = NULL;
-    // }
-    // else
-    // {
-    //     fprintf(stderr, "The h3a_write_node is NULL\n");
-    // }
-    
-    // return status;
 }
 
 vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_object_array raw_image_arr, vx_object_array ae_awb_result_arr, const char* target_string)
@@ -1269,26 +1233,6 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
     vx_user_data_object ae_awb_result = NULL;
     // vx_user_data_object h3a_stats = NULL;
     vx_image msc_outputs[TIOVX_FC_MODULE_MAX_MSC_OUTPUTS] = {NULL};
-
-    // if (graph == NULL) {
-    //     fprintf(stderr, "[FC-ERROR] Input graph is NULL\n");
-    //     return VX_ERROR_INVALID_REFERENCE;
-    // }
-    // else{
-    //     fprintf(stderr,"Graph is %p\n", graph);
-    // }    
-
-    status = vxVerifyGraph(graph);
-
-    if(status != VX_SUCCESS)
-    {
-        TIOVX_MODULE_ERROR("Graph Verify failed");
-        return status;
-    }
-    else 
-    {
-        fprintf(stderr, "Graph verification is done in fc $$$$$$$$$$$$$$$$$ %p $$$$$$$$$$$$$$$$$\n", graph);
-    }
 
 
     fprintf(stderr, "[FC-MODULE-DEBUG] Starting module_create with num_outputs=%d\n", obj->msc_num_outputs);
@@ -1365,7 +1309,6 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
     } 
 
 
-    status = vxVerifyGraph(graph);
 
     if(status != VX_SUCCESS)
     {
@@ -1392,39 +1335,6 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
    
     if(ae_awb_result_arr != NULL) {
         ae_awb_result = (vx_user_data_object)vxGetObjectArrayItem(ae_awb_result_arr, 0);
-    }
-    
-    // fprintf(stderr, "h3a_stats check 1\n");
-    
-    // // h3a_stats = (vx_user_data_object)vxGetObjectArrayItem(obj->viss_h3a_stats_arr[0], 0);
-
-    // // if (h3a_stats == NULL){
-    // //     fprintf(stderr, "h3a_stats is NULL\n");
-    // // }else{
-    // //     fprintf(stderr, "The content of h3a_stats is %p, h3a_stats\n", h3a_stats);
-    // // }
-
-    // fprintf(stderr, "h3a_stats check 2\n");
-
-    for(int i = 0; i < obj->msc_num_outputs; i++) {
-        if(obj->msc_output_select[i] == TIOVX_FC_MODULE_OUTPUT_EN) {
-
-
-            msc_outputs[i] = (vx_image)vxGetObjectArrayItem((vx_object_array)obj->msc_output[i].arr[0], 0);
-           
-            fprintf(stderr, "[module_configure_params] MSC output 0 item: %p\n", msc_outputs[i]);
-
-
-            fprintf(stderr, "[FC-MSC-MODULE] MSC output %d item: %p\n", i, msc_outputs[i]);
-
-
-            if(msc_outputs[i] == NULL) {
-                TIOVX_MODULE_ERROR("[FC-MSC-MODULE] Failed to get MSC output %d item\n", i);
-
-                status = VX_ERROR_INVALID_REFERENCE;
-            }
-
-        }
     }
 
     status = vxCopyUserDataObject(obj->fc_config, 0,
@@ -1511,7 +1421,7 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
 
         fprintf(stderr, "The node is %p\n",obj->node);
         
-        vx_bool replicate[23];
+        vx_bool replicate[22];
 
         replicate[0] = vx_false_e;  
         replicate[1] = vx_false_e;  
@@ -1567,10 +1477,22 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
     fprintf(stderr, "check 3\n");
     vx_status original_status = status; 
 
+
+    for (int i = 0; i < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS; i++){
+
+        if (msc_outputs[i])
+        {
+            vxReleaseImage(&msc_outputs[i]);
+            msc_outputs[i] = NULL;
+            fprintf(stderr, "[FC-CLEANUP] Releasing msc_outputs[%d] \n", i);
+        }
+
+    }
+
     if (viss_raw_image != NULL) 
     {
         fprintf(stderr, "[FC-CLEANUP] Releasing viss_raw_image %p\n", viss_raw_image);
-        tivxReleaseRawImage(&viss_raw_image);
+        vxReleaseReference((vx_reference*)&viss_raw_image);
     }
     else
     {
@@ -1582,13 +1504,9 @@ vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_objec
         vxReleaseUserDataObject(&ae_awb_result);
     }
 
-    // fprintf(stderr, "check 4\n");
-
-    // vxReleaseUserDataObject(&h3a_stats);
 
     fprintf(stderr, "check 5\n");
 
-    // obj->en_out_write = 1;
 
     if(obj->en_out_write == 1)
     {
