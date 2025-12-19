@@ -70,10 +70,11 @@ static vx_status tiovx_fc_module_configure_params(vx_context context, TIOVXFCMod
     // vx_int32 out;
     SensorObj *sensorObj = obj->sensorObj;
     tivx_vpac_fc_viss_msc_params_t *params = &obj->fc_params;  
-    
+    vx_int32 out;
     fprintf(stderr, "FC-MODULE Configuring FC parameters\n");
     memset(params, 0, sizeof(tivx_vpac_fc_viss_msc_params_t));  
-    
+    tivx_vpac_fc_params_init(params);
+
     params->tivxVissPrms.fcp[0].ee_mode = TIVX_VPAC_VISS_EE_MODE_OFF;
     params->tivxVissPrms.sensor_dcc_id = sensorObj->sensorParams.dccId;
     params->tivxVissPrms.use_case = 0;
@@ -94,57 +95,54 @@ static vx_status tiovx_fc_module_configure_params(vx_context context, TIOVXFCMod
 #if defined (VPAC3L)
     fprintf(stderr, "[FC-MODULE-DEBUG] Setting up VISS-MSC mapping\n");
     
-    params->msc_in_thread_viss_out_map[0] = TIVX_VPAC_FC_VISS_OUT2;
-    params->msc_in_thread_viss_out_map[1] = TIVX_VPAC_FC_VISS_OUT3;
-    params->msc_in_thread_viss_out_map[2] = TIVX_VPAC_FC_MSC_CH_INVALID;
-    params->msc_in_thread_viss_out_map[3] = TIVX_VPAC_FC_MSC_CH_INVALID;
+    // tivx_vpac_fc_params_init(&params);
+
+    params->msc_in_thread_viss_out_map[0] = TIVX_VPAC_FC_VISS_OUT0;
+    params->msc_in_thread_viss_out_map[1] = TIVX_VPAC_FC_VISS_OUT1;
+    // params->msc_in_thread_viss_out_map[2] = TIVX_VPAC_FC_MSC_CH_INVALID;
+    // params->msc_in_thread_viss_out_map[3] = TIVX_VPAC_FC_MSC_CH_INVALID;
     
-    fprintf(stderr, "The msc_output_select[0] %d\n", obj->msc_output_select[0]);    
+    // fprintf(stderr, "The msc_output_select[0] %d\n", obj->msc_output_select[0]);    
 
     // Debug the mapping params
-    fprintf(stderr, "[FC-MODULE-DEBUG] VISS-MSC mapping: %d, %d, %d, %d\n",
+    fprintf(stderr, "[FC-MODULE-DEBUG] VISS-MSC mapping: %d, %d\n",
             params->msc_in_thread_viss_out_map[0],
-            params->msc_in_thread_viss_out_map[1],
-            params->msc_in_thread_viss_out_map[2],
-            params->msc_in_thread_viss_out_map[3]);
+            params->msc_in_thread_viss_out_map[1]);
 
-    // for(out = 0; out < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS; out++)
-    // {
-    // if(obj->msc_output_select[0] == TIOVX_FC_MODULE_OUTPUT_EN)
-    //     {   
-    //         obj->msc_output[0].color_format = VX_DF_IMAGE_NV12;
+    for(out = 0; out < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS; out++)
+    {
+    if(obj->msc_output_select[0] == TIOVX_FC_MODULE_OUTPUT_EN)
+        {   
+            obj->msc_output[0].color_format = VX_DF_IMAGE_NV12;
         
-    //         fprintf(stderr, "The msc_output[0] image format is %d\n", obj->msc_output[0].color_format);
+            fprintf(stderr, "The msc_output[0] image format is %d\n", obj->msc_output[0].color_format);
         
-    //         fprintf(stderr, "Setting MSC output mapping for NV12 format...\n");
+            fprintf(stderr, "Setting MSC output mapping for NV12 format...\n");
         
-    //         for(int i = 0; i < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS; i += 2) { 
-    //             if (i == 0)
-    //             {  
-    //                 params->msc_out_msc_in_map[i] = TIVX_VPAC_FC_MSC0;
-    //                 if (i + 1 < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS)
-    //                 {
-    //                     params->msc_out_msc_in_map[i + 1] = TIVX_VPAC_FC_MSC0;  
-    //                 }
+            for(int i = 0; i < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS; i += 2) { 
+                if (i == 0)
+                {  
+                    params->msc_out_msc_in_map[i] = TIVX_VPAC_FC_MSC0;
+                    if (i + 1 < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS)
+                    {
+                        params->msc_out_msc_in_map[i + 1] = TIVX_VPAC_FC_MSC0;  
+                    }
                 
-    //                 fprintf(stderr, "Set pair msc_out_msc_in_map[%d] and msc_out_msc_in_map[%d] to MSC0\n", i, i+1);
-    //             }
-    //             else 
-    //             {
-    //                 params->msc_out_msc_in_map[i] = TIVX_VPAC_FC_MSC_TH_INVALID;
-    //                 if (i + 1 < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS) 
-    //                 {
-    //                     params->msc_out_msc_in_map[i + 1] = TIVX_VPAC_FC_MSC_TH_INVALID;
-    //                 }
-    //             }
-    //         }
+                    fprintf(stderr, "Set pair msc_out_msc_in_map[%d] and msc_out_msc_in_map[%d] to MSC0\n", i, i+1);
+                }
+                else 
+                {
+                    params->msc_out_msc_in_map[i] = TIVX_VPAC_FC_MSC_TH_INVALID;
+                    if (i + 1 < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS) 
+                    {
+                        params->msc_out_msc_in_map[i + 1] = TIVX_VPAC_FC_MSC_TH_INVALID;
+                    }
+                }
+            }
         
-    //     }
-    // }
-
-    for (int i = 2; i < TIOVX_FC_MODULE_MAX_MSC_OUTPUTS; i++){
-        params->msc_out_msc_in_map[i] = TIVX_VPAC_FC_MSC_TH_INVALID;
+        }
     }
+
 #endif
     // Debug logs
     fprintf(stderr, "NV12 format detected - ensuring msc_out_msc_in_map[0] and [1] both = MSC0 (0)\n");
@@ -981,6 +979,8 @@ vx_status tiovx_fc_module_init(vx_context context, TIOVXFCModuleObj *obj, Sensor
         status = VX_FAILURE;
     }
 
+    fprintf(stderr, "[FC-DEBUG] obj->msc_output_select in tiovx_fc_module_init is %d\n", obj->msc_output_select[0]);
+
     if((vx_status)VX_SUCCESS == status)
     {
         status = tiovx_fc_module_configure_params(context, obj);
@@ -1010,10 +1010,10 @@ vx_status tiovx_fc_module_init(vx_context context, TIOVXFCModuleObj *obj, Sensor
         status = tiovx_fc_module_configure_crop_params(context, obj);
     }
 
-    if((vx_status)VX_SUCCESS == status)
-    {
-        status = tiovx_fc_module_configure_input_params(context, obj);
-    }
+    // if((vx_status)VX_SUCCESS == status)
+    // {
+    //     status = tiovx_fc_module_configure_input_params(context, obj);
+    // }
     
     return status;
 
