@@ -68,7 +68,7 @@
 *
 * \ingroup group_tiovx_modules
 *
-* @{
+* @
 */
 #include "tiovx_modules_common.h"
 #include <TI/hwa_vpac_fc.h>
@@ -281,6 +281,8 @@ vx_status tiovx_fc_module_delete(TIOVXFCModuleObj *obj);
  *
  */
 vx_status tiovx_fc_module_release_buffers(TIOVXFCModuleObj *obj);
+
+vx_status tiovx_fc_module_create(vx_graph graph, TIOVXFCModuleObj *obj, vx_object_array raw_image_arr, vx_object_array ae_awb_result_arr, const char* target_string);
 
 vx_status tiovx_fc_module_update_filter_coeffs(TIOVXFCModuleObj *obj);
 
